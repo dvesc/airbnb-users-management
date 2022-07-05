@@ -93,7 +93,6 @@ export class User_controllers {
       this.queue_register_process.send_message(body.email, process_code);
 
       return {
-        status: HttpStatus.OK,
         message:
           'we have sent you an email to that addresse with a ' +
           'code, please check out to continue',
@@ -184,7 +183,6 @@ export class User_controllers {
       this.complete_user_registration_queue.send_message(email);
 
       return {
-        status: HttpStatus.CREATED,
         message: 'the user has been created successfully',
         data: created_user,
       };
@@ -215,7 +213,6 @@ export class User_controllers {
       this.new_password_queue.send_message(body.email, process_code);
 
       return {
-        status: HttpStatus.OK,
         message:
           'we have sent you an email to that addresse with a ' +
           'code, please check out to continue',
@@ -252,7 +249,6 @@ export class User_controllers {
       this.new_email_queue.send_message(body.new_email, process_code);
 
       return {
-        status: HttpStatus.OK,
         message:
           'we have sent you an email to that addresse with a ' +
           'code, please check out to continue',
@@ -298,7 +294,6 @@ export class User_controllers {
       this.complete_password_change_queue.send_message(email);
 
       return {
-        status: HttpStatus.CREATED,
         message: 'the password has been uploaded successfully',
       };
     } else throw new Process_code_exception();
@@ -341,7 +336,6 @@ export class User_controllers {
       this.complete_email_change_queue.send_message(new_email);
 
       return {
-        status: HttpStatus.CREATED,
         message: 'the email has been uploaded successfully',
       };
     } else throw new Process_code_exception();
@@ -490,7 +484,6 @@ export class User_controllers {
     await this.usersModuleService.update(user_id, new_data);
 
     return {
-      status: HttpStatus.OK,
       message: 'The user has been updated succesfully',
     };
   }
@@ -517,7 +510,6 @@ export class User_controllers {
     //eliminamos la imagen del bucket de s3
     await this.profile_pic_bucket.delete_file(coincidence.profile.profile_pic);
     return {
-      status: HttpStatus.OK,
       message: 'The user has been deleted succesfully',
     };
   }
