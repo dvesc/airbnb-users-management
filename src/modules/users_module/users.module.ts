@@ -45,11 +45,12 @@ import { SQS_complete_email_change_module } from '../aws/sqs/complete_email_chan
     S3_profile_pic_module,
     //para que carguen los schemas de las colecciones de nuestro modulo a la db
     MongooseModule.forFeature([
-      { name: Users.name, schema: users_schema },
-      { name: Registration_process.name, schema: registration_process_schema },
-      { name: Phone_numbers.name, schema: phone_numbers_schema },
+      //ojo con el orden ya que Users necesita que phone_numbers exista
       { name: New_password_process.name, schema: new_password_process_schema },
       { name: New_email_process.name, schema: new_email_process_schema },
+      { name: Registration_process.name, schema: registration_process_schema },
+      { name: Phone_numbers.name, schema: phone_numbers_schema },
+      { name: Users.name, schema: users_schema },
     ]),
   ],
   controllers: [User_controllers],

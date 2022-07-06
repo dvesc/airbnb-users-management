@@ -28,6 +28,19 @@ export class Users {
     }),
   )
   profile;
+
+  @Prop(
+    //asi le especificamos que es una array de object id
+    [
+      {
+        type: Mongoose_schema.Types.ObjectId,
+        default: null,
+        ref: 'Phone_numbers', //El nombre del @Schema() no de la coleccion
+      },
+    ],
+  )
+  phone_numbers;
+
   @Prop({ type: Date, default: Date.now })
   created_at;
   @Prop({ type: Date, default: Date.now })
@@ -37,13 +50,3 @@ export class Users {
 }
 
 export const users_schema = SchemaFactory.createForClass(Users);
-/**
-   @Prop(
-    raw({
-      country_code: { type: String, required: true },
-      number: { type: Number, required: true },
-    }),
-  )
-  phone_number;
-
-  */

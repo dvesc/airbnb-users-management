@@ -43,12 +43,14 @@ import { paginated_data } from 'src/common/pagination';
 import { usersModuleGuard } from './users.guard';
 import { Auth0_token_guard } from 'src/common/auth/auth0_token.guard';
 import { Nonexistent_user_exception } from 'src/errors/nonexistent_use_exception';
+import { Existent_user_exception } from 'src/errors/existent_user_exception';
 import { Process_code_exception } from 'src/errors/process_code_exception';
 import { New_email_process_vo } from './entities/new_email_process.entity';
 import { New_email_process_service } from './new_email_process.service';
 import { SQS_new_email_process_producer } from '../aws/sqs/new_email_process_module/producer.service';
 import { Change_email_dto } from './dto/new_email_dto';
 import { SQS_complete_email_change_producer } from '../aws/sqs/complete_email_change/producer.service';
+import { Phone_numbers_vo } from './entities/phone_numbers.entity';
 
 @Controller('users')
 export class User_controllers {
@@ -70,10 +72,13 @@ export class User_controllers {
 
   //ENDPOINTS--------------------------------------------------------------------
 
+  //REGISTRO DE EMAIL VALIDO-----------------------------------------------------
   @Post('singup')
   @UsePipes(new ValidationPipe())
   @HttpCode(HttpStatus.OK)
-  async create(@Body() body: Registration_process_dto): Promise<object> {
+  async registration_step_1(
+    @Body() body: Registration_process_dto,
+  ): Promise<object> {
     //Conprobamos que el usuario no exita para poder pues crear uno
     const coincidence: Users_vo =
       await this.usersModuleService.get_user_by_email(body.email);
@@ -98,19 +103,20 @@ export class User_controllers {
           'code, please check out to continue',
         data: process_vo,
       };
-    } else console.log('el usuario ya existe');
+    } else throw new Existent_user_exception();
   }
 
-  //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //CONFIRMACION DE EMAIL Y CREACION DE PERFIL-----------------------------------
   @Post('/check-account')
   @UsePipes(new ValidationPipe())
   @HttpCode(HttpStatus.CREATED)
-  async create_profile(
+  async registration_step_2(
     @Body() body: CreateUsersModuleDto,
     @Query() query_params,
   ): Promise<object> {
-    const { password, first_name, last_name, date_of_birth, notifications } =
-        body,
+    const { password, date_of_birth, notifications } = body,
+      first_name: string = body.first_name.toLocaleLowerCase(),
+      last_name: string = body.last_name.toLocaleLowerCase(),
       phone_number: phone_number_property_dto =
         body.phone_number as phone_number_property_dto,
       profile_pic: profile_pic_property_dto =
@@ -153,8 +159,6 @@ export class User_controllers {
       const profile_pic_uploaded =
         await this.profile_pic_bucket.upload_to_bucket(file_data);
 
-      console.log(JSON.stringify(profile_pic_uploaded));
-
       const new_user = {
         auth0_id,
         email,
@@ -171,29 +175,44 @@ export class User_controllers {
       const created_user: Users_vo = await this.usersModuleService.create_user(
         new_user,
       );
+
       //guardamos su movil en la coleccion de telefonos
       const its_phone_number = {
-        user_id: created_user._id,
-        number: phone_number.number,
-        country_code: formatted_phone.countryCode,
-      };
-      await this.phone_numbers_service.create_phone_number(its_phone_number);
+          user_id: created_user._id,
+          number: phone_number.number,
+          country_code: formatted_phone.countryCode,
+        },
+        created_phone: Phone_numbers_vo =
+          await this.phone_numbers_service.create_phone_number(
+            its_phone_number,
+          );
+
+      //le añadimos ese telefono a la propiedad de phone_numbers en la coleccion de users
+      await this.usersModuleService.update_phone_number_ids(
+        created_user._id,
+        created_phone._id,
+      );
+
+      //volvemos a consultar pero ya con toda la data
+      const all_user_data = await this.usersModuleService.get_user_by_id(
+        created_user._id,
+      );
 
       //enviamos email de bienvenida
       this.complete_user_registration_queue.send_message(email);
 
       return {
         message: 'the user has been created successfully',
-        data: created_user,
+        data: all_user_data,
       };
     } else throw new Process_code_exception();
   }
 
-  //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //PETICION PARA CAMBIAR LA CONTRASEÑA----------------------------------------
   @Post('/change-password')
   @UsePipes(new ValidationPipe())
   @HttpCode(HttpStatus.OK)
-  async change_password(@Body() body: Change_password_dto) {
+  async change_password_step_1(@Body() body: Change_password_dto) {
     //comprobamos que el usuario existe
     const coincidence: Users_vo =
       await this.usersModuleService.get_user_by_email(body.email);
@@ -221,11 +240,11 @@ export class User_controllers {
     } else throw new Nonexistent_user_exception();
   }
 
-  //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //PETICION PARA CAMBIAR EMAIL------------------------------------------------
   @UseGuards(Auth0_token_guard, usersModuleGuard)
   @Post(':user_id/change-email')
   @UsePipes(new ValidationPipe())
-  async change_email(@Param() params, @Body() body: Change_email_dto) {
+  async change_email_step_1(@Param() params, @Body() body: Change_email_dto) {
     const user_id = params.user_id,
       new_email = body.new_email,
       coincidence: Users_vo = await this.usersModuleService.get_user_by_id(
@@ -257,11 +276,11 @@ export class User_controllers {
     } else throw new Nonexistent_user_exception();
   }
 
-  //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //CAMBIO DE CONTRASEÑA-------------------------------------------------------
   @Put('/new-password')
   @UsePipes(new ValidationPipe())
   @HttpCode(HttpStatus.CREATED)
-  async new_password(
+  async change_password_step_2(
     @Body() body: New_password_dto,
     @Query() query_params,
   ): Promise<object> {
@@ -299,11 +318,11 @@ export class User_controllers {
     } else throw new Process_code_exception();
   }
 
-  //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  //CONFIRMACION DEL NUEVO EMAIL-----------------------------------------------
   @Put('/new-email')
   @UsePipes(new ValidationPipe())
   @HttpCode(HttpStatus.CREATED)
-  async new_email(@Query() query_params): Promise<object> {
+  async change_email_step_2(@Query() query_params): Promise<object> {
     const { process_code } = query_params;
 
     //consultamos en nuestra db si ya se consumio ese codigo
@@ -343,7 +362,7 @@ export class User_controllers {
   //OBTENER USUARIOS-----------------------------------------------------------
   @Get()
   @HttpCode(HttpStatus.OK)
-  async findby(
+  async get_users(
     @Req()
     req: Request,
     @Query()
@@ -428,6 +447,12 @@ export class User_controllers {
   @HttpCode(HttpStatus.OK)
   async update(@Param() params, @Body() update_user_dto: Update_users_dto) {
     const body = update_user_dto as any,
+      first_name: string | undefined = body.first_name
+        ? body.first_name.toLocaleLowerCase()
+        : undefined,
+      last_name: string | undefined = body.last_name
+        ? body.last_name.toLocaleLowerCase()
+        : undefined,
       user_id: string = params.user_id;
     let profile_pic_uploaded, file_key, full_name;
 
@@ -463,10 +488,10 @@ export class User_controllers {
     }
 
     //actualizar usuario en auth0 si hace falta . . . . . . . . . . . . . . .
-    if (body.first_name || body.last_name) {
+    if (first_name || last_name) {
       //en este caso el nombre
-      full_name = `${body.first_name || coincidence.profile.first_name} ${
-        body.last_name || coincidence.profile.last_name
+      full_name = `${first_name || coincidence.profile.first_name} ${
+        last_name || coincidence.profile.last_name
       }`;
     }
     this.auth0.update_user(coincidence.auth0_id, { name: full_name });
@@ -474,8 +499,8 @@ export class User_controllers {
     //actualizamos la commodity en nuestra db . . . . . . . . . . . . . . . . .
     const new_data = {
       notifications: body.notification,
-      'profile.first_name': body.first_name,
-      'profile.last_name': body.last_name,
+      'profile.first_name': first_name,
+      'profile.last_name': last_name,
       'profile.profile_pic': file_key,
       'profile.gender': body.gender,
       'profile.date_of_birth': body.date_of_birth,

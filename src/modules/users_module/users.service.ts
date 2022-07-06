@@ -28,19 +28,29 @@ export class UsersModuleService {
   }
 
   async get_user_by_id(id: string): Promise<undefined | Users_vo> {
-    const coincidence: undefined | Users_vo = await this.users_model.findOne({
-      _id: new Types.ObjectId(id),
-      deleted_at: null,
-    });
+    const coincidence: undefined | Users_vo = await this.users_model
+      .findOne({
+        _id: new Types.ObjectId(id),
+        deleted_at: null,
+      })
+      .populate({
+        path: 'phone_numbers', //la propiedad
+        select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
+      });
 
     return coincidence;
   }
 
   async get_user_by_email(email: string): Promise<undefined | Users_vo> {
-    const coincidence: undefined | Users_vo = await this.users_model.findOne({
-      email: email,
-      deleted_at: null,
-    });
+    const coincidence: undefined | Users_vo = await this.users_model
+      .findOne({
+        email: email,
+        deleted_at: null,
+      })
+      .populate({
+        path: 'phone_numbers', //la propiedad
+        select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
+      });
 
     return coincidence;
   }
@@ -51,7 +61,6 @@ export class UsersModuleService {
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      let coincidences: Users_vo[] = [];
       const reg_exp = new RegExp(`${filtervalue}`, 'i');
 
       //Creamos el filtro
@@ -59,7 +68,13 @@ export class UsersModuleService {
         filter = { $and: [{ deleted_at: null }, { $or: terms }] };
 
       //Consultamos la db
-      coincidences = await this.users_model.find(filter).sort(sort);
+      const coincidences: Users_vo[] = await this.users_model
+        .find(filter)
+        .populate({
+          path: 'phone_numbers', //la propiedad
+          select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
+        })
+        .sort(sort);
 
       return coincidences;
     } catch (err) {
@@ -80,6 +95,10 @@ export class UsersModuleService {
         .find({
           user_id: reg_exp,
           deleted_at: null,
+        })
+        .populate({
+          path: 'phone_numbers', //la propiedad
+          select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
         })
         .sort(sort);
 
@@ -103,15 +122,18 @@ export class UsersModuleService {
           email: reg_exp,
           deleted_at: null,
         })
+        .populate({
+          path: 'phone_numbers', //la propiedad
+          select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
+        })
         .sort(sort);
-
       return coincidences;
     } catch (err) {
       //MANEJAR ERROR
     }
   }
 
-  //COINCIDENCIAS POR ROLE-----------------------------------------------------
+  //COINCIDENCIAS POR ROL-----------------------------------------------------
   async coincidences_by_role(
     filtervalue: string,
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
@@ -125,8 +147,11 @@ export class UsersModuleService {
           role: reg_exp,
           deleted_at: null,
         })
+        .populate({
+          path: 'phone_numbers', //la propiedad
+          select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
+        })
         .sort(sort);
-
       return coincidences;
     } catch (err) {
       //MANEJAR ERROR
@@ -146,6 +171,10 @@ export class UsersModuleService {
         .find({
           'profile.gender': reg_exp,
           deleted_at: null,
+        })
+        .populate({
+          path: 'phone_numbers', //la propiedad
+          select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
         })
         .sort(sort);
 
@@ -169,6 +198,10 @@ export class UsersModuleService {
           'profile.first_name': reg_exp,
           deleted_at: null,
         })
+        .populate({
+          path: 'phone_numbers', //la propiedad
+          select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
+        })
         .sort(sort);
 
       return coincidences;
@@ -191,12 +224,28 @@ export class UsersModuleService {
           'profile.last_name': reg_exp,
           deleted_at: null,
         })
+        .populate({
+          path: 'phone_numbers', //la propiedad
+          select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
+        })
         .sort(sort);
 
       return coincidences;
     } catch (err) {
       //MANEJAR ERROR
     }
+  }
+
+  //ACTUALIZAR LA ARRAY DE PHONE NUMBER IDS------------------------------------------
+  async update_phone_number_ids(id: string, phone_number_id: string) {
+    const old_user: Users_vo = await this.get_user_by_id(id),
+      phone_numbers = old_user.phone_numbers;
+
+    phone_numbers.push(new Types.ObjectId(phone_number_id));
+
+    await old_user.updateOne({
+      phone_numbers,
+    });
   }
 
   //No pongo el tipo de dato que retorna porque no muestra todas las propiedades
