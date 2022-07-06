@@ -198,6 +198,12 @@ export class User_controllers {
         created_user._id,
       );
 
+      //firmamos la imagen del bucket
+      all_user_data.profile.profile_pic =
+        await this.profile_pic_bucket.get_signed_url(
+          all_user_data.profile.profile_pic,
+        );
+
       //enviamos email de bienvenida
       this.complete_user_registration_queue.send_message(email);
 
