@@ -5,8 +5,10 @@ import {
   IsNotEmptyObject,
   IsOptional,
   Matches,
+  ValidateNested,
 } from 'class-validator';
 import { CreateUsersModuleDto } from './create_users_dto';
+import { Type } from 'class-transformer';
 
 export class profile_pic_property_dto {
   @Matches(/^data:([A-Za-z-+\/]+);base64,(.+)$/, {
@@ -26,6 +28,8 @@ export class Update_users_dto extends PartialType(CreateUsersModuleDto) {
 
   @IsOptional()
   @IsNotEmptyObject()
+  @ValidateNested({ each: true })
+  @Type(() => profile_pic_property_dto)
   profile_pic?: profile_pic_property_dto;
 
   @IsOptional()

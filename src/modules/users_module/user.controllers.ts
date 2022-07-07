@@ -126,6 +126,7 @@ export class User_controllers {
       { process_code } = query_params,
       full_name = first_name + ' ' + last_name,
       date_of_birth = body.date_of_birth;
+    let profile_pic_uploaded: any;
 
     //consultamos en nuestra db si ya se consumio ese codigo
     const process: Registration_process_vo | undefined =
@@ -146,7 +147,7 @@ export class User_controllers {
 
       //validamos el telefono
       const country_code: string = phone_number.country_code,
-        number: string = phone_number.number;
+        number: string = phone_number.number.toString();
       const formatted_phone = phone_lib(country_code + number);
       if (!formatted_phone.isValid) throw new Invalid_phone_exception();
 
@@ -157,22 +158,28 @@ export class User_controllers {
         password,
       );
 
-      //Convertimos la img de base64 a un archivo
-      const file_data: object | undefined = from_base64_to(
-        auth0_id,
-        profile_pic.file,
-      );
+      //Si nos pasan la imagen
+      if (profile_pic !== undefined && profile_pic instanceof Object) {
+        if (profile_pic.hasOwnProperty('file')) {
+          //Convertimos  de base64 a un archivo
+          const file_data: object | undefined = from_base64_to(
+            auth0_id,
+            profile_pic.file,
+          );
 
-      //Subimos al bucket de s3
-      const profile_pic_uploaded =
-        await this.profile_pic_bucket.upload_to_bucket(file_data);
+          //Subimos al bucket de s3
+          profile_pic_uploaded = await this.profile_pic_bucket.upload_to_bucket(
+            file_data,
+          );
+        }
+      }
 
       //guardamos en nuestra db el usuario
       const new_user = {
           auth0_id,
           email,
           profile: {
-            profile_pic: profile_pic_uploaded.Key,
+            profile_pic: profile_pic_uploaded ? profile_pic_uploaded.Key : null,
             first_name,
             last_name,
             date_of_birth,
@@ -205,11 +212,13 @@ export class User_controllers {
         created_user._id,
       );
 
-      //firmamos la imagen del bucket
-      all_user_data.profile.profile_pic =
-        await this.profile_pic_bucket.get_signed_url(
-          all_user_data.profile.profile_pic,
-        );
+      //firmamos la imagen del bucket si la posee
+      if (all_user_data.profile.profile_pic) {
+        all_user_data.profile.profile_pic =
+          await this.profile_pic_bucket.get_signed_url(
+            all_user_data.profile.profile_pic,
+          );
+      }
 
       //enviamos email de bienvenida
       this.complete_user_registration_queue.send_message(email);
@@ -447,12 +456,14 @@ export class User_controllers {
         break;
     }
 
-    //generamos la url firmada por cada usuario obtenido
+    //generamos la url firmada por cada usuario obtenido si posee una img
     for (let i = 0; i < coincidences.length; i++) {
-      coincidences[i].profile.profile_pic =
-        await this.profile_pic_bucket.get_signed_url(
-          coincidences[i].profile.profile_pic,
-        );
+      if (coincidences[i].profile.profile_pic) {
+        coincidences[i].profile.profile_pic =
+          await this.profile_pic_bucket.get_signed_url(
+            coincidences[i].profile.profile_pic,
+          );
+      }
     }
 
     return paginated_data(page, size, coincidences, req);
@@ -495,26 +506,28 @@ export class User_controllers {
     }
 
     //si nos pasan una nueva imagen actualizamos en el s3 . . . . . . . . . . .
-    if (body.profile_pic) {
-      const profile_pic: profile_pic_property_dto =
-        body.profile_pic as profile_pic_property_dto;
-      //la convertimos de base a 64 a archivo
-      const file_data: object | undefined = from_base64_to(
-        coincidence.auth0_id,
-        profile_pic.file,
-      );
-      //Subimos al bucket de s3 el nuevo archivo
-      profile_pic_uploaded = await this.profile_pic_bucket.upload_to_bucket(
-        file_data,
-      );
-
-      if (profile_pic_uploaded) {
-        //obtenemos su nombre
-        file_key = profile_pic_uploaded.Key;
-        //y eliminamos el viejo
-        await this.profile_pic_bucket.delete_file(
-          coincidence.profile.profile_pic,
+    if (body.profile_pic !== undefined && body.profile_pic instanceof Object) {
+      if (body.profile_pic.hasOwnProperty('file')) {
+        const profile_pic: profile_pic_property_dto =
+          body.profile_pic as profile_pic_property_dto;
+        //la convertimos de base a 64 a archivo
+        const file_data: object | undefined = from_base64_to(
+          coincidence.auth0_id,
+          profile_pic.file,
         );
+        //Subimos al bucket de s3 el nuevo archivo
+        profile_pic_uploaded = await this.profile_pic_bucket.upload_to_bucket(
+          file_data,
+        );
+
+        if (profile_pic_uploaded) {
+          //obtenemos su nombre
+          file_key = profile_pic_uploaded.Key;
+          //y eliminamos el viejo
+          await this.profile_pic_bucket.delete_file(
+            coincidence.profile.profile_pic,
+          );
+        }
       }
     }
 

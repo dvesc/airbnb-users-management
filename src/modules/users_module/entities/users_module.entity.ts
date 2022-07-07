@@ -22,7 +22,7 @@ export class Users {
     raw({
       first_name: { type: String, required: true },
       last_name: { type: String, required: true },
-      profile_pic: { type: String, required: true },
+      profile_pic: { type: String, default: null },
       date_of_birth: { type: String, required: true },
       gender: { type: String, default: null }, //male | female | other
     }),
