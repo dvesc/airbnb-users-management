@@ -1,9 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import {
-  IsAlpha,
   IsAscii,
   IsBoolean,
-  IsInstance,
   IsNotEmptyObject,
   IsOptional,
   Matches,
@@ -31,8 +29,8 @@ export class Update_users_dto extends PartialType(CreateUsersModuleDto) {
   profile_pic?: profile_pic_property_dto;
 
   @IsOptional()
-  @Matches(/^([0-2][0-9]|3[0-1])(\/|-)(0[1-9]|1[0-2])\2(\d{4})$/, {
-    message: 'date_of_birth must be a valid date format (DD/MM/YYYY)',
+  @Matches(/^([0-2][0-9]|3[0-1])(-)(0[1-9]|1[0-2])\2(\d{4})$/, {
+    message: 'date_of_birth must be a valid date format (DD-MM-YYYY)',
   })
   date_of_birth?: string;
 

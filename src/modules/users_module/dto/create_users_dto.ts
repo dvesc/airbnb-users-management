@@ -3,8 +3,6 @@ import {
   IsAlpha,
   IsAscii,
   IsBoolean,
-  IsInstance,
-  IsNotEmpty,
   IsNotEmptyObject,
   IsNumber,
   IsOptional,
@@ -12,8 +10,8 @@ import {
 } from 'class-validator';
 
 export class phone_number_property_dto {
-  @IsAlpha()
-  country: string;
+  @Matches(/\+[0-9]{1,3}/g, { message: 'must be a code in valid format +DDD' })
+  country_code: string;
   @IsNumber()
   number: string;
 }
@@ -36,8 +34,8 @@ export class CreateUsersModuleDto {
   @IsOptional()
   profile_pic?: profile_pic_property_dto;
 
-  @Matches(/^([0-2][0-9]|3[0-1])(\/|-)(0[1-9]|1[0-2])\2(\d{4})$/, {
-    message: 'date_of_birth must be a valid date format (DD/MM/YYYY)',
+  @Matches(/^([0-2][0-9]|3[0-1])(-)(0[1-9]|1[0-2])\2(\d{4})$/, {
+    message: 'date_of_birth must be a valid date format (DD-MM-YYYY)',
   })
   date_of_birth: string;
 

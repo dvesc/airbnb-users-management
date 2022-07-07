@@ -51,6 +51,8 @@ import { SQS_new_email_process_producer } from '../aws/sqs/new_email_process_mod
 import { Change_email_dto } from './dto/new_email_dto';
 import { SQS_complete_email_change_producer } from '../aws/sqs/complete_email_change/producer.service';
 import { Phone_numbers_vo } from './entities/phone_numbers.entity';
+import { Invalid_phone_exception } from 'src/errors/invalid_phone_exception';
+import { Exceeds_the_date_range_exception } from 'src/errors/exceeds_the_date_range_exception';
 
 @Controller('users')
 export class User_controllers {
@@ -114,7 +116,7 @@ export class User_controllers {
     @Body() body: CreateUsersModuleDto,
     @Query() query_params,
   ): Promise<object> {
-    const { password, date_of_birth, notifications } = body,
+    const { password, notifications } = body,
       first_name: string = body.first_name.toLocaleLowerCase(),
       last_name: string = body.last_name.toLocaleLowerCase(),
       phone_number: phone_number_property_dto =
@@ -122,12 +124,8 @@ export class User_controllers {
       profile_pic: profile_pic_property_dto =
         body.profile_pic as profile_pic_property_dto,
       { process_code } = query_params,
-      full_name = first_name + ' ' + last_name;
-
-    //validamos que el telefono sea valido
-    const country_code: string = phone_number.country as string,
-      phone = phone_number.number as string;
-    const formatted_phone = phone_lib(phone, { country: country_code });
+      full_name = first_name + ' ' + last_name,
+      date_of_birth = body.date_of_birth;
 
     //consultamos en nuestra db si ya se consumio ese codigo
     const process: Registration_process_vo | undefined =
@@ -137,10 +135,20 @@ export class User_controllers {
 
     if (process) {
       const email: string = process.email;
-      //desavilitamos el codigo de proceso
-      await this.registration_process_service.consume_registration_process(
-        process._id,
-      );
+
+      //validamos que la fecha se encuentre en un rango valido minimo 18 maximo 100
+      const birth = new Date(date_of_birth.split('-').reverse().join(',')),
+        lapse = Math.floor(
+          (new Date().getTime() - birth.getTime()) / (31536600 * 1000),
+        );
+      if (lapse < 18 || lapse > 100)
+        throw new Exceeds_the_date_range_exception();
+
+      //validamos el telefono
+      const country_code: string = phone_number.country_code,
+        number: string = phone_number.number;
+      const formatted_phone = phone_lib(country_code + number);
+      if (!formatted_phone.isValid) throw new Invalid_phone_exception();
 
       //registramos ese usuario en auth0
       const auth0_id = await this.auth0.register_user(
@@ -159,22 +167,21 @@ export class User_controllers {
       const profile_pic_uploaded =
         await this.profile_pic_bucket.upload_to_bucket(file_data);
 
-      const new_user = {
-        auth0_id,
-        email,
-        profile: {
-          profile_pic: profile_pic_uploaded.Key,
-          first_name,
-          last_name,
-          date_of_birth,
-        },
-        notifications,
-      };
-
       //guardamos en nuestra db el usuario
-      const created_user: Users_vo = await this.usersModuleService.create_user(
-        new_user,
-      );
+      const new_user = {
+          auth0_id,
+          email,
+          profile: {
+            profile_pic: profile_pic_uploaded.Key,
+            first_name,
+            last_name,
+            date_of_birth,
+          },
+          notifications,
+        },
+        created_user: Users_vo = await this.usersModuleService.create_user(
+          new_user,
+        );
 
       //guardamos su movil en la coleccion de telefonos
       const its_phone_number = {
@@ -206,6 +213,11 @@ export class User_controllers {
 
       //enviamos email de bienvenida
       this.complete_user_registration_queue.send_message(email);
+
+      //desavilitamos el codigo de proceso
+      await this.registration_process_service.consume_registration_process(
+        process._id,
+      );
 
       return {
         message: 'the user has been created successfully',
@@ -459,7 +471,8 @@ export class User_controllers {
       last_name: string | undefined = body.last_name
         ? body.last_name.toLocaleLowerCase()
         : undefined,
-      user_id: string = params.user_id;
+      user_id: string = params.user_id,
+      date_of_birth = update_user_dto.date_of_birth;
     let profile_pic_uploaded, file_key, full_name;
 
     //buscamos al usuario
@@ -468,6 +481,16 @@ export class User_controllers {
     );
     //Comprobamos que exista dicho usuario
     if (!coincidence) throw new Nonexistent_user_exception();
+
+    //validamos que la fecha se encuentre en un rango valido minimo 18 maximo 100
+    if (date_of_birth) {
+      const birth = new Date(date_of_birth.split('-').reverse().join(',')),
+        lapse = Math.floor(
+          (new Date().getTime() - birth.getTime()) / (31536600 * 1000),
+        );
+      if (lapse < 18 || lapse > 100)
+        throw new Exceeds_the_date_range_exception();
+    }
 
     //si nos pasan una nueva imagen actualizamos en el s3 . . . . . . . . . . .
     if (body.profile_pic) {
