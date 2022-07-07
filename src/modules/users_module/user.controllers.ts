@@ -399,59 +399,64 @@ export class User_controllers {
     //Asignamos valores predeterminados
     const filter_by: string = query_params.filterby || 'all',
       filter_value: string = query_params.filtervalue || '',
-      order: number = query_params.order == 'desc' ? -1 : 1,
+      order: number = query_params.order == 'desc' ? -1 : 1, //asc deafult
       order_by: string = query_params.orderby || 'created_at',
       page: number = query_params.page || 1,
       size: number = query_params.size || 10,
       //debe ser "<order by>:<1||-1>"
       sort = {
         [`${order_by || 'created_at'}`]: order,
-      };
+      } as Record<string, 1 | -1 | { $meta: 'textScore' }>; //esto fue por un error
+
+    console.log(
+      `filter by: ${filter_by}, filter value: ${filter_value}, order: ${order}, order by: ${order_by}`,
+    );
+
     switch (filter_by) {
       default:
         coincidences = await this.usersModuleService.coincidences_by_all(
           filter_value,
-          sort as Record<string, 1 | -1 | { $meta: 'textScore' }>, //esto fue por un pinchi error
+          sort,
         );
         break;
       case 'id':
-        coincidences = await this.usersModuleService.coincidences_by_user_id(
+        coincidences = await this.usersModuleService.coincidences_by_id(
           filter_value,
-          sort as Record<string, 1 | -1 | { $meta: 'textScore' }>, //esto fue por un pinchi error
+          sort,
         );
         break;
       case 'email':
         coincidences = await this.usersModuleService.coincidences_by_email(
           filter_value,
-          sort as Record<string, 1 | -1 | { $meta: 'textScore' }>, //esto fue por un pinchi error
+          sort,
         );
         break;
 
       case 'role':
         coincidences = await this.usersModuleService.coincidences_by_role(
           filter_value,
-          sort as Record<string, 1 | -1 | { $meta: 'textScore' }>, //esto fue por un pinchi error
+          sort,
         );
         break;
 
       case 'first_name':
         coincidences = await this.usersModuleService.coincidences_by_first_name(
           filter_value,
-          sort as Record<string, 1 | -1 | { $meta: 'textScore' }>, //esto fue por un pinchi error
+          sort,
         );
         break;
 
       case 'last_name':
         coincidences = await this.usersModuleService.coincidences_by_last_name(
           filter_value,
-          sort as Record<string, 1 | -1 | { $meta: 'textScore' }>, //esto fue por un pinchi error
+          sort,
         );
         break;
 
       case 'gender':
         coincidences = await this.usersModuleService.coincidences_by_gender(
           filter_value,
-          sort as Record<string, 1 | -1 | { $meta: 'textScore' }>, //esto fue por un pinchi error
+          sort,
         );
         break;
     }

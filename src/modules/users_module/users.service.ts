@@ -9,6 +9,8 @@ import {
 } from './entities/in-registration-process.entity';
 import { Users, Users_vo } from './entities/users_module.entity';
 
+const id_which_never_generates_mongo = '000000000000';
+
 @Injectable()
 export class UsersModuleService {
   //CONSTRUCTOR CON INYECCIONES------------------------------------------------
@@ -61,10 +63,20 @@ export class UsersModuleService {
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      const reg_exp = new RegExp(`${filtervalue}`, 'i');
+      const reg_exp = new RegExp(`${filtervalue}`, 'i'),
+        id: string | Types.ObjectId = filtervalue.match(/^[0-9a-fA-F]{24}$/)
+          ? filtervalue
+          : id_which_never_generates_mongo;
 
       //Creamos el filtro
-      const terms: object[] = [{ name: reg_exp }, { user_id: filtervalue }],
+      const terms: object[] = [
+          { _id: new Types.ObjectId(id) },
+          { email: reg_exp },
+          { role: reg_exp },
+          { 'profile.gender': reg_exp },
+          { 'profile.first_name': reg_exp },
+          { 'profile.last_name': reg_exp },
+        ],
         filter = { $and: [{ deleted_at: null }, { $or: terms }] };
 
       //Consultamos la db
@@ -82,18 +94,21 @@ export class UsersModuleService {
     }
   }
 
-  //COINCIDENCIAS POR USER_ID--------------------------------------------------
-  async coincidences_by_user_id(
+  //COINCIDENCIAS POR ID----------------------------------------------------
+  async coincidences_by_id(
     filtervalue: string,
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      let coincidences: Users_vo[] = [];
-      const reg_exp = new RegExp(`${filtervalue}`, 'i');
+      const id = filtervalue.match(/^[0-9a-fA-F]{24}$/)
+        ? filtervalue
+        : id_which_never_generates_mongo;
+
+      console.log('id: ' + id);
       //Consultamos la db
-      coincidences = await this.users_model
+      const coincidences: Users_vo[] = await this.users_model
         .find({
-          user_id: reg_exp,
+          _id: new Types.ObjectId(id),
           deleted_at: null,
         })
         .populate({
@@ -101,10 +116,9 @@ export class UsersModuleService {
           select: { user_id: 0, __v: 0, deleted_at: 0 }, //no quiero que me muestre esas propiedades
         })
         .sort(sort);
-
       return coincidences;
     } catch (err) {
-      //MANEJAR ERROR
+      console.log(err);
     }
   }
 
@@ -114,10 +128,9 @@ export class UsersModuleService {
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      let coincidences: Users_vo[] = [];
       const reg_exp = new RegExp(`${filtervalue}`, 'i');
       //Consultamos la db
-      coincidences = await this.users_model
+      const coincidences: Users_vo[] = await this.users_model
         .find({
           email: reg_exp,
           deleted_at: null,
@@ -139,10 +152,9 @@ export class UsersModuleService {
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      let coincidences: Users_vo[] = [];
       const reg_exp = new RegExp(`${filtervalue}`, 'i');
       //Consultamos la db
-      coincidences = await this.users_model
+      const coincidences: Users_vo[] = await this.users_model
         .find({
           role: reg_exp,
           deleted_at: null,
@@ -164,10 +176,9 @@ export class UsersModuleService {
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      let coincidences: Users_vo[] = [];
       const reg_exp = new RegExp(`${filtervalue}`, 'i');
       //Consultamos la db
-      coincidences = await this.users_model
+      const coincidences: Users_vo[] = await this.users_model
         .find({
           'profile.gender': reg_exp,
           deleted_at: null,
@@ -190,10 +201,9 @@ export class UsersModuleService {
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      let coincidences: Users_vo[] = [];
       const reg_exp = new RegExp(`${filtervalue}`, 'i');
       //Consultamos la db
-      coincidences = await this.users_model
+      const coincidences: Users_vo[] = await this.users_model
         .find({
           'profile.first_name': reg_exp,
           deleted_at: null,
@@ -216,10 +226,9 @@ export class UsersModuleService {
     sort: Record<string, 1 | -1 | { $meta: 'textScore' }>,
   ): Promise<Users_vo[]> {
     try {
-      let coincidences: Users_vo[] = [];
       const reg_exp = new RegExp(`${filtervalue}`, 'i');
       //Consultamos la db
-      coincidences = await this.users_model
+      const coincidences: Users_vo[] = await this.users_model
         .find({
           'profile.last_name': reg_exp,
           deleted_at: null,
