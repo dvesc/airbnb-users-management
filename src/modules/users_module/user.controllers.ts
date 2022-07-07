@@ -522,8 +522,8 @@ export class User_controllers {
       full_name = `${first_name || coincidence.profile.first_name} ${
         last_name || coincidence.profile.last_name
       }`;
+      this.auth0.update_user(coincidence.auth0_id, { name: full_name });
     }
-    this.auth0.update_user(coincidence.auth0_id, { name: full_name });
 
     //actualizamos la commodity en nuestra db . . . . . . . . . . . . . . . . .
     const new_data = {
