@@ -1,6 +1,4 @@
-import { UsePipes } from '@nestjs/common';
 import {
-  IsAlpha,
   IsAscii,
   IsBoolean,
   IsNotEmptyObject,
@@ -48,7 +46,7 @@ export class CreateUsersModuleDto {
         'at least one capital letter, ' +
         'at least one lowercase letter, ' +
         'at least one digit, no blank spaces' +
-        'and at least 1 special character',
+        'and at least 1 special character like @!%*?&#.$',
     },
   )
   password: string;
