@@ -476,9 +476,11 @@ export class User_controllers {
     let profile_pic_uploaded, file_key, full_name;
 
     //buscamos al usuario
+    console.log('el users_id' + user_id);
     const coincidence: Users_vo = await this.usersModuleService.get_user_by_id(
       user_id,
     );
+
     //Comprobamos que exista dicho usuario
     if (!coincidence) throw new Nonexistent_user_exception();
 

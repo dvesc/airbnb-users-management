@@ -39,7 +39,7 @@ export class Update_users_dto extends PartialType(CreateUsersModuleDto) {
   notifications?: boolean;
 
   @IsOptional()
-  @Matches(/male|female|other/gi, {
+  @Matches(/male|female|other/i, {
     message: 'the gener only can be male, female and other ',
   })
   gender?: string;
