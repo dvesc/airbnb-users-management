@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SqsService } from '@ssut/nestjs-sqs';
+import { generate_new_password_process_html } from './html_message';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('dotenv').config();
 
@@ -21,13 +22,8 @@ export class SQS_new_password_process_producer {
         //esto es lo que importa, este seria el msg que realmente manda
         body: {
           email,
-          subject: 'Confirm your email address',
-          html:
-            '<b>click on the following link:</b>' +
-            '<a href="">Continue with your new password process </a>' +
-            '<b> and use this secret code: ' +
-            process_code +
-            '</b>',
+          subject: 'Password change request',
+          html: generate_new_password_process_html(process_code),
         },
         delaySeconds: 0,
       },

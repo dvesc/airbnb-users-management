@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SqsService } from '@ssut/nestjs-sqs';
 import { ConfigService } from '@nestjs/config';
+import { generate_new_email_process_html } from './html_message';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 require('dotenv').config();
 
@@ -26,13 +27,8 @@ export class SQS_new_email_process_producer {
         //nuestro mensaje
         body: {
           email,
-          subject: 'Confirm your new email address',
-          html:
-            '<b>click on the following link:</b>' +
-            '<a href="">to check your new email</a>' +
-            '<b> and use this secret code: ' +
-            process_code +
-            '</b>',
+          subject: 'Email change request',
+          html: generate_new_email_process_html(process_code),
         },
       },
     );

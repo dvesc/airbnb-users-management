@@ -48,13 +48,12 @@ export class S3_profile_pic_services {
       Expires: 60, //en segundos OJO
       Key: file_key,
     };
-    console.log(url_params);
+
     const signed_url = await this.s3.getSignedUrlPromise(
       'getObject',
       url_params,
     ); //la url firmada temporal
 
-    console.log('la url firmada' + signed_url);
     return signed_url;
   };
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { SqsService } from '@ssut/nestjs-sqs';
 import { ConfigService } from '@nestjs/config';
+import { generate_complete_user_registration_html } from './html_message';
 
 @Injectable()
 export class SQS_complete_user_registration_producer {
@@ -20,8 +21,8 @@ export class SQS_complete_user_registration_producer {
         body: {
           email,
           subject:
-            '¡Te damos la bienvenida a Airbnb! ¿Cuál será tu primer destino?',
-          html: '<b>bienvenido<b>',
+            'We welcome you to Airbnb! What will be your first destination?',
+          html: generate_complete_user_registration_html(),
         },
         delaySeconds: 0,
       },

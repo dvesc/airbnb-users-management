@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SqsService } from '@ssut/nestjs-sqs';
+import { generate_register_process_html } from './html_message';
 
 @Injectable()
 export class SQS_register_process_producer {
@@ -22,13 +23,8 @@ export class SQS_register_process_producer {
         //nuestro mensaje
         body: {
           email,
-          subject: 'Confirm your email address',
-          html:
-            '<b>click on the following link:</b>' +
-            '<a href="">Continue with your check-account</a>' +
-            '<b> and use this secret code: ' +
-            process_code +
-            '</b>',
+          subject: 'Email confirmation',
+          html: generate_register_process_html(process_code),
         },
       },
     );

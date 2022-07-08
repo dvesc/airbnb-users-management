@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { SqsService } from '@ssut/nestjs-sqs';
 import { ConfigService } from '@nestjs/config';
+import { generate_complete_email_change_html } from './html_message';
+
 @Injectable()
 export class SQS_complete_email_change_producer {
   //CONSTRUCTOR----------------------------------------------------------------
@@ -18,8 +20,8 @@ export class SQS_complete_email_change_producer {
         //esto es lo que importa, este seria el msg que realmente manda
         body: {
           email,
-          subject: 'change of password',
-          html: '<b>Your email has been uploaded succesfully<b>',
+          subject: 'Email changed successfully',
+          html: generate_complete_email_change_html(),
         },
         delaySeconds: 0,
       },

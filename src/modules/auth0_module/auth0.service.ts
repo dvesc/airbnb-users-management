@@ -9,12 +9,6 @@ const ManagementClient = require('auth0').ManagementClient;
 export class Auth0_service {
   private auth0: any;
   public constructor(private readonly config_service: ConfigService) {
-    console.log({
-      domain: this.config_service.get('auth0.domain'),
-      clientId: this.config_service.get('auth0.client_id'),
-      clientSecret: this.config_service.get('auth0.client_secret'),
-      scope: 'read:users update:users',
-    });
     this.auth0 = new ManagementClient({
       domain: this.config_service.get('auth0.domain'),
       clientId: this.config_service.get('auth0.client_id'),
