@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-require('dotenv').config();
 import { ConfigService } from '@nestjs/config';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ManagementClient = require('auth0').ManagementClient;
@@ -21,6 +19,7 @@ export class Auth0_service {
     const user_created = await this.auth0.users.create({
       email: email,
       password: password,
+      email_verified: true, //para que nos envie un email de spam al crearlo
       connection: 'Username-Password-Authentication', //conecction type
     });
     const auth0_id = user_created.identities[0].user_id; //el objeto creado es complejo, lo cierto es que ahi esta el id
