@@ -400,18 +400,27 @@ export class User_controllers {
     const filter_by: string = query_params.filterby || 'all',
       filter_value: string = query_params.filtervalue || '',
       order: number = query_params.order == 'desc' ? -1 : 1, //asc deafult
-      order_by: string = query_params.orderby || 'created_at',
       page: number = query_params.page || 1,
-      size: number = query_params.size || 10,
-      //debe ser "<order by>:<1||-1>"
-      sort = {
-        [`${order_by || 'created_at'}`]: order,
-      } as Record<string, 1 | -1 | { $meta: 'textScore' }>; //esto fue por un error
+      size: number = query_params.size || 10;
 
-    console.log(
-      `filter by: ${filter_by}, filter value: ${filter_value}, order: ${order}, order by: ${order_by}`,
-    );
+    //manipulamos la posible data de orderby
+    let order_by: string;
+    if (query_params.orderby)
+      order_by = query_params.orderby.match(
+        /id|email|role|first_name|last_name/i,
+      )
+        ? query_params.orderby
+        : 'created_at';
+    else order_by = 'created_at';
+    if (order_by.match(/first_name|last_name/i))
+      order_by = 'profile.' + order_by; //ya que son propiedades dentro de otra
 
+    //debe ser "<order by>:<1||-1>"
+    const sort = {
+      [`${order_by}`]: order,
+    } as Record<string, 1 | -1 | { $meta: 'textScore' }>; //esto fue por un error
+
+    console.log(sort);
     switch (filter_by) {
       default:
         coincidences = await this.usersModuleService.coincidences_by_all(
